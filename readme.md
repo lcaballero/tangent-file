@@ -2,11 +2,11 @@
 
 # Introduction
 
-This lib produces what I would call a separate one off log files for some
+This lib produces what I would call a separate, one off, log files for some
 specific error or purpose.  The idea is to output 'more' information to
 this file and prevent the normal log from becoming too noisy.
 
-To prevent this new 'tangent' logging from becoming too noisy as well it
+To prevent this new 'tangent' logging from becoming too noisy this lib
 debounces the number of writes it attempts during a period of time.
 There are a number of configuration properties, so take a look at the usage.
 
@@ -17,9 +17,10 @@ There are a number of configuration properties, so take a look at the usage.
 %> npm install tangent-file --save
 ```
 
+
 ## Usage
 
-See a simple and typical usage below.  This uses the default values to setup
+A simple and typical usage is below.  This uses the default values to setup
 the TangentFile and then calls .write(String) to push data into a file.
 
 ```
@@ -50,7 +51,6 @@ defaults =
   debounceDelay     : 1000      # 1 second
   filenameTemplate  : "{name}-{number}.log"
 ```
-
 
 The `TangentFile` constructor can accept a configuration object and will
 recognize the following properties:
