@@ -1,0 +1,30 @@
+{
+  "name": "tangent-file",
+  "version": "0.0.1",
+  "description": "Writess and rolls over a file much like a log, but intended for use where a large amount of output to the log is not helpful to the overall usefulness of a normal log.",
+  "main": "index.js",
+  "keywords": [
+    "logging",
+    "log",
+    "file",
+    "roll-over"
+  ],
+  "license": "Eclipse Public License (EPL)",
+  "author": "Lucas Caballero",
+  "repository": "http://github.com/lcaballero/tangent-file.git",
+  "scripts": {
+    "test": "mocha --reporter list --compilers coffee:coffee-script/register tests"
+  },
+  "dependencies": {
+    "coffee-script": "^1.8.0",
+    "glob": "^4.0.6",
+    "lodash": "^2.4.1",
+    "nject": "^1.2.2"
+  },
+  "devDependencies": {
+    "chai": "^1.9.2",
+    "mocha": "^1.21.5",
+    "sinon": "^1.10.3",
+    "sinon-chai": "^2.6.0"
+  }
+}
