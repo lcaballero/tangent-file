@@ -5,6 +5,10 @@ fs    = require('fs')
 module.exports =
 
   class TangentFile
+
+    @minimums = min :
+      debounceDelay     : 1000
+
     @defaults =
       outDirectory      : '~/tmp'
       startingNumber    : 1
@@ -39,8 +43,17 @@ module.exports =
 
         It's mainly to keep testing times low!
       ###
-      defaults = _.defaults({}, (opts or {}), TangentFile.defaults)
+      defaults = _.defaults({}, (defaults or {}), TangentFile.defaults, TangentFile.minimums)
       opts     = _.defaults({}, (opts or {}), defaults)
+
+      if opts.startingNumber > opts.maxFiles
+        throw new Error('startingNumber cannot be beyond maxFiles')
+
+      if opts.maxFiles <= 0
+        throw new Error('maxFiles cannot be <= 0')
+
+      if opts.debounceDelay <= opts.min.debounceDelay
+        throw new Error("debounceDelay (#{opts.debounceDelay}) cannot be less than the minimum debounce of #{opts.min.debounceDelay}")
 
       @outDirectory     = opts.outDirectory
       @maxFiles         = opts.maxFiles
@@ -49,7 +62,7 @@ module.exports =
       @startingNumber   = opts.startingNumber
       @name             = opts.name
       @number           = opts.startingNumber
-      @hasExecutedOnce  = false
+      @hasYetToWrite    = true
       @lastExecutedAt   = null
 
     ###
@@ -79,28 +92,32 @@ module.exports =
       else
         s or ""
 
-    filename : (peek) ->
-      @number =
-        if !peek and @number >= (@startingNumber + @maxFiles)
-        then @startingNumber
-        else @number
-
+    currentFilename : (number, name) ->
       @interpolate(@filenameTemplate, {
-        name    : @name
-        number  : if peek then @number else (@number++)
+        name    : name or @name
+        number  : number or @number
       })
 
-    fullname : (peek) ->
-      path.resolve(@outDirectory, @filename(peek))
+    nextFilename : ->
+      @number =
+        if (@number + 1) >= (@startingNumber + @maxFiles)
+        then @startingNumber
+        else @number + 1
+
+      @currentFilename(@number, @name)
 
     write: (text, cb) ->
       now             = Date.now()
-      @lastExecutedAt = if @hasExecutedOnce then now else @lastExecutedAt
-      delta           = now - @lastExecutedAt > @debounceDelay
+      @lastExecutedAt = if @hasYetToWrite then now else @lastExecutedAt
+      isInsideWindow  = now - @lastExecutedAt > @debounceDelay
+      opts            = { encoding: 'utf8' }
 
-      if !@hasExecutedOnce and delta
-        fs.writeFile(@fullname(), text, { encoding: 'utf8' }, (err) => cb(err, true))
+      if @hasYetToWrite or isInsideWindow
+        filename        = if @hasYetToWrite then @currentFilename() else @nextFilename()
         @lastExecutedAt = now
+        @hasYetToWrite  = false
+        fn              = path.resolve(@outDirectory, filename)
+        fs.writeFile(fn, text, opts, (err) => cb(err, true, filename, fn))
       else
         cb(null, false) # This indicates that the file wasn't immediately written.
 

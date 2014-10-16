@@ -16,12 +16,60 @@ describe 'TangentFile =>', ->
       Setting this globally here to prevent ~/tmp (the default) from
       being written to during testing.
     ###
-    TangentFile.defaults.outDirectory = "./files/tmp"
+    TangentFile.defaults.outDirectory       = "./files/tmp"
+    TangentFile.minimums.min.debounceDelay  = 1  # <= minimized for testing
 
   describe 'write more tangent files =>', ->
 
-    it.skip 'should have written the maximum number of files', ->
+    outDir  = './files/roll'
+    logs    = "#{outDir}/*.log"
 
+    ###
+      Clean up after each test so that we can properly test things like rollover.
+    ###
+    afterEach ->
+      glob(logs, (err, res) ->
+        if err?
+          console.log('failed to find .log files')
+        else
+          for r in res
+            fs.unlinkSync(r)
+      )
+
+    it 'should have written the maximum number of files', (done) ->
+      overrides =
+        debounceDelay : TangentFile.minimums.min.debounceDelay + 1
+        outDirectory  : outDir
+
+      t = new TangentFile(undefined, overrides)
+
+      { startingNumber, maxFiles } = t
+
+      count = 0
+      m     = 15
+
+      for i in [startingNumber..maxFiles]
+        do ->
+          setTimeout(->
+            t.write("some text #{i}", (err, isWritten, fn, fqn) ->
+              expect(t.number).to.be.within(startingNumber, maxFiles)
+              expect(isWritten, "should have written file.").to.be.true
+              count++
+            )
+          , i * m)
+
+      setTimeout(->
+        r = [startingNumber..maxFiles]
+        for i in r
+          expect(t.number).to.be.within(startingNumber, maxFiles)
+          exists(t.outDirectory, t.nextFilename())
+
+        glob(logs, (err, res) ->
+          expect(err).to.not.exist
+          expect(res).to.have.length(r.length)
+          done()
+        )
+      , maxFiles * m)
 
   describe 'write =>', ->
 
@@ -101,9 +149,11 @@ describe 'TangentFile =>', ->
 
     it 'on the first call it should write the text to file', (done) ->
       t = new TangentFile()
-      filename = t.filename(true)
-      t.write('some text', (err, isWritten) ->
-        exists(t.outDirectory, filename)
+      currentFilename = t.currentFilename()
+
+      t.write('some text', (err, isWritten, writtenFilename) ->
+        exists(t.outDirectory, currentFilename)
+        expect(currentFilename).to.equal(writtenFilename)
         expect(isWritten).true
         done()
       )
@@ -113,12 +163,12 @@ describe 'TangentFile =>', ->
 
     it 'should apply file name template', ->
       t = new TangentFile()
-      s = t.filename()
+      s = t.currentFilename()
       expect(s).to.equal('tangent-1.log')
 
     it 'should provide the first filename', ->
       t = new TangentFile()
-      vals = (t.filename() for n in [t.startingNumber..t.maxFiles])
+      vals = (t.nextFilename() for n in [t.startingNumber..t.maxFiles])
       uniq = _.unique(_.clone(vals))
 
       expect(vals).to.have.length(t.maxFiles)
@@ -127,7 +177,7 @@ describe 'TangentFile =>', ->
 
     it 'should provide the first filename', ->
       t = new TangentFile()
-      names = [ t.filename(), t.filename() ]
+      names = [ t.nextFilename(), t.nextFilename() ]
       expect(names[0]).to.exist
       expect(names[1]).to.exist
       expect(names[0]).to.not.equal(names[1])
@@ -157,13 +207,14 @@ describe 'TangentFile =>', ->
 
     it.skip 'should check for a reasonable debounceDelay', ->
 
-    it.skip 'should not allow zero maxFiles', ->
+    it 'should not allow zero maxFiles', ->
+      expect(-> new TangentFile({ startingNumber: -1, maxFiles : 0 })).to.throw(Error)
 
-    it.skip 'should not allow a starting number above the maxFile limit', ->
+    it 'should not allow negative maxFiles', ->
+      expect(-> new TangentFile({ startingNumber: -101, maxFiles : -100 })).to.throw(Error)
 
-    it.skip "should default the 'name' value if one is not provided", ->
-
-    it.skip "should disallow", ->
+    it 'should not allow a starting number above the maxFile limit', ->
+      expect(-> new TangentFile({ startingNumber: 20, maxFiles : 10 })).to.throw(Error)
 
 
   describe 'contructor =>', ->
@@ -177,7 +228,7 @@ describe 'TangentFile =>', ->
 
     it 'should not have a last executed time', ->
       t = new TangentFile()
-      expect(t.hasExecutedOnce).to.be.false
+      expect(t.hasYetToWrite).to.be.true
 
     for k,v of TangentFile.defaults
       do -> it "should default the #{k}", ->
