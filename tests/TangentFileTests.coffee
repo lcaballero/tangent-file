@@ -2,6 +2,7 @@ TangentFile = require("../src/TangentFile")
 fs          = require('fs')
 path        = require('path')
 glob        = require('glob')
+_           = require('lodash')
 
 
 describe 'TangentFile =>', ->

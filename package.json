@@ -1,6 +1,6 @@
 {
   "name": "tangent-file",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Writes a file much like a log, but intended for use where a large amount of output to the log is not helpful to the overall usefulness of a normal log.",
   "main": "index.js",
   "keywords": [

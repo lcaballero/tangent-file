@@ -1,5 +1,6 @@
 path  = require('path')
 fs    = require('fs')
+_     = require('lodash')
 
 
 module.exports =
